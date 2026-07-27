@@ -1,0 +1,19 @@
+# secrets / local state (never committed — provisioned via Render env vars instead)
+.env
+DEPLOY_SECRETS.txt
+users.json
+photos/
+vapid.json
+push_subs.json
+*.log
+
+# Mac-only tunnel binaries (~68MB) — not needed in the cloud
+ngrok
+cloudflared
+
+# local scratch / data dir
+data/
+
+# OS / editor junk
+.DS_Store
+.claude/

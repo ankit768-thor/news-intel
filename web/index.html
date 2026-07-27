@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>News Intelligence</title>
+<meta name="description" content="AI-powered news intelligence dashboard — real, free, cross-source news with bias & reliability signals.">
+<meta name="theme-color" content="#07080c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="News Intel">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="stylesheet" href="/styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛰️</text></svg>">
+</head>
+<body>
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">🛰️</div>
+      <div><b>News Intel</b><small>Intelligence Desk</small></div>
+    </div>
+    <nav id="nav"></nav>
+    <div class="disclaimer" style="padding:10px 12px;">
+      Live data from public RSS feeds. Bias &amp; reliability are approximate, from public
+      media-watchdog ratings. Summaries are extractive from real source text — nothing is fabricated.
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <header class="topbar">
+      <div class="search" onclick="document.getElementById('globalSearch').focus()">
+        <span>🔍</span>
+        <input id="globalSearch" placeholder="Search news, people, companies, tickers, topics…" autocomplete="off">
+        <kbd>⌘K</kbd>
+      </div>
+      <button class="tb-btn hide-mobile" onclick="App.openAsk()">✦ Ask</button>
+      <button class="tb-btn" id="refreshBtn" onclick="App.refreshNews()" title="Fetch the latest news now (R)"><span id="refreshIcon">↻</span> <span class="hide-mobile">Refresh</span></button>
+      <button class="tb-btn" id="themeBtn" onclick="App.toggleTheme()">🌙</button>
+      <div class="tb-btn hide-mobile" title="Feed status" style="gap:8px;">
+        <span class="status-dot loading" id="statusDot"></span>
+        <span id="statusText" style="font-size:12px;color:var(--muted)">…</span>
+      </div>
+    </header>
+
+    <main class="content" id="content"><!-- rendered by app.js --></main>
+  </div>
+</div>
+
+<!-- Mobile bottom navigation (phones only) -->
+<nav class="bottom-nav" id="bottomNav"></nav>
+
+<!-- Mobile "More" sheet -->
+<div class="sheet-scrim" id="sheetScrim" onclick="App.closeSheet()"></div>
+<div class="mobile-sheet" id="mobileSheet" role="dialog" aria-modal="true"></div>
+
+<!-- Story drawer -->
+<div class="scrim" id="scrim" onclick="App.closeDrawer()"></div>
+<div class="drawer" id="drawer" role="dialog" aria-modal="true"></div>
+
+<!-- Command palette -->
+<div class="modal-scrim" id="paletteScrim">
+  <div class="palette">
+    <div class="palette-input">
+      <span>⌘</span>
+      <input id="paletteInput" placeholder="Jump to a section, category, or search…">
+    </div>
+    <div class="palette-list" id="paletteList"></div>
+  </div>
+</div>
+
+<!-- Ask modal -->
+<div class="modal-scrim" id="askScrim">
+  <div class="ask-modal">
+    <div class="ask-head">
+      <span style="font-size:18px">✦</span>
+      <h3>Ask the News</h3>
+      <button class="close-x" style="margin-left:auto" onclick="App.closeAsk()">✕</button>
+    </div>
+    <div class="ask-body">
+      <div class="ask-input">
+        <input id="askInput" placeholder='e.g. "What happened in markets today?"'>
+        <button class="tb-btn primary" onclick="App.runAsk()">Ask</button>
+      </div>
+      <div class="ask-suggest" id="askSuggest"></div>
+      <div id="askResult"></div>
+      <p class="disclaimer">Answers are built by retrieving and quoting real headlines currently in
+      the feed — every point is cited. This is extractive (no generative model), so it never invents facts.</p>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="/app.js"></script>
+</body>
+</html>

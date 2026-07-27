@@ -1,0 +1,25 @@
+# Render Blueprint — deploys the News Intelligence Dashboard as a free web service.
+# In Render: New → Blueprint → pick this repo. Then fill the secret env vars
+# (marked sync:false) in the dashboard; their values are in DEPLOY_SECRETS.txt.
+services:
+  - type: web
+    name: news-intel
+    runtime: python
+    plan: free
+    buildCommand: ""            # pure stdlib — nothing to install
+    startCommand: python3 server.py
+    healthCheckPath: /api/status
+    autoDeploy: true
+    envVars:
+      - key: HOST
+        value: 0.0.0.0          # bind all interfaces so Render's proxy can reach it
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: GOOGLE_CLIENT_ID
+        sync: false             # fill in dashboard (from DEPLOY_SECRETS.txt)
+      - key: OWNER_TOKEN
+        sync: false
+      - key: TICK_TOKEN
+        sync: false
+      - key: VAPID_JSON
+        sync: false

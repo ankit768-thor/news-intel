@@ -1,0 +1,2 @@
+# No third-party dependencies — the app is Python-3 standard library only
+# (push.py hand-rolls VAPID/ECDSA). This file just tells Render it's a Python app.
