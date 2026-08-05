@@ -571,18 +571,29 @@ class Store:
             params = dict(hl="en-US", gl="US", ceid="US:en")
         url = "https://news.google.com/rss/search?q=" + urllib.parse.quote(query) + \
               "&" + urllib.parse.urlencode(params)
-        try:
-            raw = fetch(url)
-            arts = parse_feed(raw, "Google News", category, "india" if india else "world", gnews=True)
-        except Exception:
-            arts = []
+        # Retry once on failure/empty — a cold cloud instance can be slow on the first
+        # outbound fetch, and we must NOT let a transient timeout become a cached empty.
+        arts = []
+        for attempt in range(2):
+            try:
+                raw = fetch(url, timeout=20)
+                arts = parse_feed(raw, "Google News", category, "india" if india else "world", gnews=True)
+                if arts:
+                    break
+            except Exception:
+                arts = []
+            if attempt == 0:
+                time.sleep(0.6)
         # merge metadata for known publishers
         for a in arts:
             meta = pub_meta(a["publisher"])
             a.update(country=meta["country"], bias=meta["bias"],
                      bias_pos=F.BIAS_POS.get(meta["bias"], 0),
                      reliability=meta["reliability"], ownership=meta["ownership"])
-        self.gn_cache[key] = (now, arts)
+        # Cache SUCCESS only — never poison the cache with an empty/failed result, so the
+        # next request re-fetches instead of serving "no results" for the full TTL.
+        if arts:
+            self.gn_cache[key] = (now, arts)
         return arts
 
 
@@ -1606,9 +1617,15 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {"stories": [], "total": 0, "city": ""})
         # Build a local-news query; radius is informational (RSS has no geo filter).
         topics = g("topics", "")
-        q = f'"{city}" (local OR traffic OR weather OR crime OR civic OR municipal OR metro OR power OR water OR election){(" " + topics) if topics else ""}'
         india = g("india", "1") == "1"
+        q = f'"{city}" (local OR traffic OR weather OR crime OR civic OR municipal OR metro OR power OR water OR election){(" " + topics) if topics else ""}'
         gn = STORE.google_news(q, india=india, category="Local", ttl=300)
+        # Fallback for an obscure city / no keyword match: broaden to just the city name.
+        if len(gn) < 3:
+            broad = STORE.google_news(f'"{city}"{(" " + topics) if topics else ""}',
+                                      india=india, category="Local", ttl=300)
+            if len(broad) > len(gn):
+                gn = broad
         stories = [build_story(c) for c in cluster(gn)]
         stories.sort(key=lambda s: s["published_ts"], reverse=True)
         return self._send(200, {"stories": stories[:40], "total": len(stories),
