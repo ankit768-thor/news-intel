@@ -1,99 +1,83 @@
-# 🛰️ News Intelligence Dashboard
+# 📰 News Intelligence Dashboard
 
-A self-contained, AI-style **news operating system** that runs entirely on your Mac.
-It pulls **real, live news** from ~50 free public RSS feeds (BBC, Reuters, The Guardian,
-Al Jazeera, NPR, NDTV, The Hindu, Times of India, Indian Express, TechCrunch, and more),
-plus Google News for search and long-tail topics — **no API keys, no signups, no paid services.**
+**A self-contained news reader that clusters the same story across ~50 sources, shows you each outlet's bias & reliability, summarizes without hallucinating, and pushes breaking-news alerts to your phone — even when the app is closed.**
 
-Nothing is fabricated. Every story links to its real source, every "Ask" answer quotes real
-headlines, and bias/reliability are approximate ratings from public media-watchdog aggregators.
+🔗 **Live demo:** https://news-intel-sc30.onrender.com  *(sign in with Google)*
+
+Built as a solo project in **pure Python standard library** — no frameworks, no database, no paid APIs, no build step. One `server.py`, a few static files, done.
 
 ---
 
-## ▶️ Run it
+## Why
+
+Most news apps show you one source's take and call it the truth. I wanted a dashboard that:
+- puts the **same story from every outlet side by side**, so spin is obvious,
+- labels each source's **political lean and reliability**,
+- summarizes with the publisher's **own words** (so it can't invent facts), and
+- actually **notifies me** when something breaks near me or around the world.
+
+So I built it.
+
+## ✨ What it does
+
+| Feature | What it means |
+|---|---|
+| **Cross-source clustering** | The same event from BBC, Reuters, NDTV, Al Jazeera… grouped into one story, so you see every angle at once. |
+| **Bias & reliability signals** | Each source tagged with an approximate political lean + reliability rating. |
+| **"In Short" deck** | Inshorts-style swipeable cards — the day's top 20, one tap each. |
+| **Ask the News** | Ask a question, get an answer built only from **real, cited headlines** (extractive — no made-up facts). |
+| **Trends & World Map** | Rising keywords + an interactive map of where the news is happening. |
+| **Local news** | City-level coverage — traffic, civic, crime, weather — for any town you type. |
+| **🔔 Smart push alerts** | Server-side Web Push: breaking news reaches your phone **with the app fully closed**. Pick exactly which world topics (politics, disasters, sports…) or local city alerts you want. |
+| **Who's Watching** | Owner-only log of who's signed in. |
+| **Installable (PWA)** | Add to Home Screen on iPhone/Android — runs like a native app, no store needed. |
+
+## 🧠 How it works
+
+```
+~50 RSS feeds ──▶ parallel fetch (ThreadPoolExecutor)
+                     │
+                     ▼
+         Jaccard clustering on title signatures  ──▶ one story, many sources
+                     │
+                     ▼
+     importance score + extractive summaries + bias/reliability merge
+                     │
+     ┌───────────────┼────────────────┐
+     ▼               ▼                 ▼
+  HTTP API      background          Web Push loop
+ (http.server)  refresh (10 min)   (5 min → FCM/APNs)
+```
+
+- **Summaries are extractive**, pulled from each publisher's own RSS text — it rephrases nothing, so it can't hallucinate.
+- **Web Push built from scratch**: VAPID (P-256 ECDSA signing) hand-rolled in pure Python — no `cryptography`, no `pywebpush`. The server sends the push; a service worker wakes and shows it even when the tab is closed.
+- **No database**: state lives in small JSON files; news lives in memory and refreshes on a background thread.
+
+## 🛠 Tech
+
+**Backend:** Python 3 (standard library only) · `http.server` · `ThreadingHTTPServer` · hand-rolled VAPID/ECDSA
+**Frontend:** vanilla JS single-page app · Service Worker · Web Push · PWA (installable, offline shell)
+**Data:** ~50 free RSS feeds + Google News RSS · no API keys
+**Deploy:** GitHub → Render (free tier) · auto-HTTPS · a cron pinger keeps it awake 24/7
+
+## 🚀 Run it yourself
 
 ```bash
-cd ~/Downloads/news-intel
-python3 server.py
+python3 server.py          # → http://localhost:8770
 ```
 
-Then open **http://localhost:8770** in your browser.
+That's the whole setup. No `pip install`, no Node, no config. To deploy, the included `render.yaml` turns it into a one-click Render Blueprint (set `GOOGLE_CLIENT_ID`, `OWNER_TOKEN`, `TICK_TOKEN`, `VAPID_JSON`).
 
-Or just **double-click `start.command`** in Finder.
+## 📁 Layout
 
-### 📱 Install on your phone (Android / iPhone)
-Open the site in Chrome/Safari on your phone → menu → **"Add to Home Screen"**. It installs
-as a full-screen app (icon, no browser bar) thanks to the bundled web manifest. The layout is
-fully responsive with a bottom tab bar + "More" menu for phones.
-
-### 🔗 Share it with someone on another network
-**Double-click `share.command`.** It starts the server (if needed) and opens a free Cloudflare
-tunnel, printing a public link like `https://xxxx.trycloudflare.com` — send that to anyone.
-Notes: the link only works while your Mac is on and that window stays open; it's public (no login),
-fine for a read-only news reader; and you get a *new* link each time you run it.
-Requires the bundled `cloudflared` binary (already in this folder).
-
-> First load fetches ~50 feeds in parallel and takes a few seconds — you'll see skeleton
-> loaders, then the feed fills in. It auto-refreshes every 10 minutes.
-
-Requires only **Python 3** (built into macOS) — no `pip install`, no Node, no database.
+```
+server.py     — HTTP API, RSS fetch/parse, clustering, summaries, push loop
+push.py       — pure-Python VAPID / Web Push (P-256 ECDSA)
+feeds.py      — ~50 curated feeds + source bias/reliability metadata
+web/          — vanilla-JS SPA, service worker, PWA manifest
+render.yaml   — one-click cloud deploy
+```
 
 ---
 
-## ✨ What's inside
-
-| Feature | What it does |
-|---|---|
-| **In Short** | Inshorts-style deck of the day's top 20 stories — full-screen swipeable cards (↑↓ keys / swipe / scroll), image + 60-word brief + source |
-| **Brief snippets** | Every story shows a tight ~60-word brief. When a feed ships only a headline, the article's own published description (og:description / lead paragraphs) is fetched to fill it — real text, prose-filtered, never fabricated, cached |
-| **Global feed** | Worldwide news, filter by category, time, importance, reliability, political lean |
-| **India feed** | Dedicated tab across Indian publishers, filter by state/UT |
-| **Local news** | Enter a city (or use GPS) for local/traffic/weather/civic/crime stories |
-| **Desks** | Technology, AI, Business, Markets, Science, Space, Sports, Health, Crypto |
-| **Cross-source comparison** | Auto-merges the same event reported by multiple outlets, side-by-side with reliability & bias |
-| **AI summaries** | 30-sec, 2-min, bullets, ELI5, detailed, timeline — extractive from real source text |
-| **Source transparency** | Publisher, country, ownership, reliability score, political-lean dial, archive link |
-| **Timeline** | Chronological view of how a story developed across publishers |
-| **Trends** | Fastest-growing terms worldwide & in India (last 8h vs prior) |
-| **World map** | Coverage by country — click to see top stories |
-| **Ask the News** | Cited, extractive Q&A over the live feed (never invents facts) |
-| **Search** | Across the live feed + Google News, merged and de-duplicated |
-| **Reading tools** | Dark/light, listen (text-to-speech), translate, bookmark, history |
-| **Command palette** | ⌘K to jump anywhere |
-
-### Keyboard shortcuts
-`⌘K` palette · `/` search · `H` home · `B` breaking · `T` trending · `W` world · `I` India · `L` local · `M` map · `A` ask · `Esc` close
-
----
-
-## 🧱 How it's built
-
-```
-news-intel/
-├── server.py     # Python stdlib backend: RSS fetch + parse, clustering,
-│                 # trends, extractive summaries, retrieval ("Ask"), HTTP API
-├── feeds.py      # Curated source catalogue + publisher bias/reliability ratings
-├── web/
-│   ├── index.html
-│   ├── styles.css   # glassmorphism, dark-first, responsive
-│   └── app.js       # vanilla JS SPA — feed, drawer, trends, map, ask, search
-├── start.command    # double-click launcher
-└── README.md
-```
-
-**No external dependencies.** The backend is pure Python 3 standard library
-(`urllib`, `xml.etree`, `http.server`, `concurrent.futures`).
-
-### Honesty by design
-- **Bias & reliability** are coarse, approximate ratings drawn from public media-watchdog
-  aggregators (AllSides, Media Bias/Fact Check). They are labelled "approximate" everywhere
-  and should be treated as a rough signal, not ground truth.
-- **Summaries** are *extractive* — built from the publisher's own RSS text, never generated.
-  If a feed gives only a headline, the summary is short; open the source for the full article.
-- **"Ask"** retrieves and quotes real headlines currently in the feed, with citations. It is
-  not a generative model, so it cannot invent facts (the trade-off: answers are quotes, not prose).
-
-### Want richer data later?
-The architecture already supports it — drop a GNews / NewsAPI / Guardian key into a fetch
-helper in `server.py` and add the source to `feeds.py`. Everything else (clustering, scoring,
-summaries, UI) works the same.
+*A personal project — built to learn by shipping. Bias/reliability ratings are approximate, sourced from public media-watchdog aggregators.*
